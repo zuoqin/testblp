@@ -1,4 +1,5 @@
 (ns testblp.core
+  (:require [clojure.data.json :as json])
   (:gen-class))
 
 
@@ -79,31 +80,38 @@
               (.replace v "\"" ""))))))))
 
 (defn parse-response [response]
-  ;  (println response)
-  (loop [
-         lines (->> response str clojure.string/split-lines (drop 1) drop-last)
-         done {}
-         stack []
-         ]
-    (if (empty? lines)
-      done
-      (let [
-            line (first lines)
-            ;            k (re-find #"[a-zA-Z_\[\]0-9]+" line)
-            k (-> line (.split " = ") first .trim)
-            new-stack (conj stack k)
-            ]
-        (cond
-         (.contains line "[]")
-         (recur (rest lines) (assoc-in-last done new-stack []) new-stack)
-         (.contains line "{")
-         (if (and (not-empty stack) (.contains (peek stack) "[]"))
-           (recur (rest lines) (assoc-in-last done new-stack {}) new-stack)
-           (recur (rest lines) done new-stack))
-         (.contains line "}")
-         (recur (rest lines) done (pop stack))
-         :default
-         (recur (rest lines) (assoc-in-last done new-stack (get-v line)) stack))))))
+
+  (loop data (str response) result {}
+
+
+  )
+  ;(println (str "response=" (clojure.string/replace (str response) #"ReferenceDataResponse =" "")))  ;;(first (clojure.string/split (str response) #"^.*PX_LAST.*$"))
+  ;; (loop [
+  ;;        lines (->> response str clojure.string/split-lines (drop 1) drop-last)
+  ;;        done {}
+  ;;        stack []
+  ;;        ]
+  ;;   (if (empty? lines)
+  ;;     done
+  ;;     (let [
+  ;;           line (first lines)
+  ;;           ;            k (re-find #"[a-zA-Z_\[\]0-9]+" line)
+  ;;           k (-> line (.split " = ") first .trim)
+  ;;           new-stack (conj stack k)
+  ;;           ]
+  ;;       (cond
+  ;;        (.contains line "[]")
+  ;;        (recur (rest lines) (assoc-in-last done new-stack []) new-stack)
+  ;;        (.contains line "{")
+  ;;        (if (and (not-empty stack) (.contains (peek stack) "[]"))
+  ;;          (recur (rest lines) (assoc-in-last done new-stack {}) new-stack)
+  ;;          (recur (rest lines) done new-stack))
+  ;;        (.contains line "}")
+  ;;        (recur (rest lines) done (pop stack))
+  ;;        :default
+  ;;        (recur (rest lines) (assoc-in-last done new-stack (get-v line)) stack)))))
+   ;(json/read-str (clojure.string/replace (str response) #"ReferenceDataResponse =" "") :key-fn keyword)
+)
 
 (defn request [securities fields & [start-date end-date periodicity]]
   ;periodicity is DAILY WEEKLY MONTHLY QUARTERLY SEMI_ANNUALLY YEARLY
@@ -159,13 +167,13 @@
 
 (def c (take 2 companies))
 
-(defn get-des [{c "CIE_DES_BULK[]"}]
+(defn get-des [{c "PX_LAST[]"}]
   (apply str
          (interpose "\n"
                     (map #(-> % first second) c))))
 
-(defn get-desciptions [companies]
-  (value-map get-des (latest-request companies ["CIE_DES_BULK"])))
+(defn get-descriptions [companies]
+  (value-map get-des (latest-request companies ["PX_LAST"])))
 
 
 
