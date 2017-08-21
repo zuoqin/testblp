@@ -1,8 +1,9 @@
 (ns testblp.core
+  (:gen-class)
   (:require
     [clojure.string :as str]
     [dk.ative.docjure.spreadsheet]
-    [datomic.api :as d]
+    ;;[datomic.api :as d]
 
     [clj-time.core :as t]
     [clj-time.format :as f]
@@ -12,7 +13,7 @@
     [clj-http.client :as client]
   )
   (use dk.ative.docjure.spreadsheet)
-  (:gen-class))
+  )
 
 
 (import com.bloomberglp.blpapi.CorrelationID)
@@ -31,59 +32,59 @@
 
 (def build-in-basicdate-formatter (f/formatters :basic-date))
 
-(def drive "c")
+(def drive "e")
 
 (def uri "datomic:dev://localhost:4334/sberpb_dev")
 
-(defn ent [id]
-  (let [
-   conn (d/connect uri)
-  ]
-  (seq (d/entity (d/db conn) (ffirst id))) )
-)
+; (defn ent [id]
+;   (let [
+;    conn (d/connect uri)
+;   ]
+;   (seq (d/entity (d/db conn) (ffirst id))) )
+; )
 
-(defn update-price [security price]
-  (let [
-    conn (d/connect uri)
-    dt (java.util.Date.)
-    dttxt (f/unparse build-in-basicdate-formatter (c/from-long (c/to-long dt)))
-    secid (ffirst (d/q '[:find ?e
-                        :in $ ?bcode
-                        :where
-                        [?e :security/bcode]
-                        [?s :security/bcode ?bcode]
-                        ]
-                      (d/db conn) security))
+; (defn update-price [security price]
+;   (let [
+;     conn (d/connect uri)
+;     dt (java.util.Date.)
+;     dttxt (f/unparse build-in-basicdate-formatter (c/from-long (c/to-long dt)))
+;     secid (ffirst (d/q '[:find ?e
+;                         :in $ ?bcode
+;                         :where
+;                         [?e :security/bcode]
+;                         [?s :security/bcode ?bcode]
+;                         ]
+;                       (d/db conn) security))
 
 
 
-    tr1 (println (str "secid=" secid))
-    priceid (d/q '[:find ?e ;?t ?a ?y ?d ?p ?dur
-             :in $ ?sec
-             :where
-             [?e :price/security ?sec]
-             ] (d/db conn) secid)
+;     tr1 (println (str "secid=" secid))
+;     priceid (d/q '[:find ?e ;?t ?a ?y ?d ?p ?dur
+;              :in $ ?sec
+;              :where
+;              [?e :price/security ?sec]
+;              ] (d/db conn) secid)
 
-    price (ent priceid)
-    target (second (first (filter (fn [x] (if (= (first x) (keyword "price/targetprice")) true false)) price) ))
+;     price (ent priceid)
+;     target (second (first (filter (fn [x] (if (= (first x) (keyword "price/targetprice")) true false)) price) ))
 
-    anr (second (first (filter (fn [x] (if (= (first x) (keyword "price/analystrating")) true false)) price) ))
+;     anr (second (first (filter (fn [x] (if (= (first x) (keyword "price/analystrating")) true false)) price) ))
 
-    yield (second (first (filter (fn [x] (if (= (first x) (keyword "price/yield")) true false)) price) ))
+;     yield (second (first (filter (fn [x] (if (= (first x) (keyword "price/yield")) true false)) price) ))
 
-    dvddate (second (first (filter (fn [x] (if (= (first x) (keyword "price/dvddate")) true false)) price) ))
+;     dvddate (second (first (filter (fn [x] (if (= (first x) (keyword "price/dvddate")) true false)) price) ))
 
-    putdate (second (first (filter (fn [x] (if (= (first x) (keyword "price/putdate")) true false)) price) ))
+;     putdate (second (first (filter (fn [x] (if (= (first x) (keyword "price/putdate")) true false)) price) ))
 
-    duration (second (first (filter (fn [x] (if (= (first x) (keyword "price/duration")) true false)) price) ))
+;     duration (second (first (filter (fn [x] (if (= (first x) (keyword "price/duration")) true false)) price) ))
 
-    tr2 (if (not (nil? priceid)) (d/transact conn [[:db.fn/retractEntity (ffirst priceid)]]))
+;     tr2 (if (not (nil? priceid)) (d/transact conn [[:db.fn/retractEntity (ffirst priceid)]]))
 
-    ]
-    (d/transact-async conn  [{ :price/security secid :price/lastprice price :price/valuedate dt  :price/source "Bloomberg API import" :price/comment (str "Import from Bllomberg API output on " dttxt) :price/targetprice target :price/analystrating anr :price/yield yield :price/dvddate dvddate :price/putdate putdate :price/duration duration :db/id #db/id[:db.part/user -100001 ]}])
-  )
+;     ]
+;     (d/transact-async conn  [{ :price/security secid :price/lastprice price :price/valuedate dt  :price/source "Bloomberg API import" :price/comment (str "Import from Bllomberg API output on " dttxt) :price/targetprice target :price/analystrating anr :price/yield yield :price/dvddate dvddate :price/putdate putdate :price/duration duration :db/id #db/id[:db.part/user -100001 ]}])
+;   )
 
-)
+; )
 
 (defn update-price-http [security price]
   (let [
@@ -100,22 +101,22 @@
   )
 )
 
-(defn get-price [bcode]
-  (let [
-        conn (d/connect uri)
-        price (ffirst (d/q '[:find ?v
-                        :in $ ?bcode
-                        :where
-                        [?s :security/bcode ?bcode]
-                        [?p :price/lastprice ?v]
-                        [?p :price/security ?s]
-                        ]
-                      (d/db conn) bcode)) 
+; (defn get-price [bcode]
+;   (let [
+;         conn (d/connect uri)
+;         price (ffirst (d/q '[:find ?v
+;                         :in $ ?bcode
+;                         :where
+;                         [?s :security/bcode ?bcode]
+;                         [?p :price/lastprice ?v]
+;                         [?p :price/security ?s]
+;                         ]
+;                       (d/db conn) bcode)) 
 
-    ]
-    price
-  )
-)
+;     ]
+;     price
+;   )
+; )
 
 (defn value-map [f m]
   (zipmap (keys m) (map f (vals m))))
@@ -205,9 +206,9 @@
         ;;pos2 1;;(+ pos1 10)
         price (subs data (+ newpos1 10) (- newpos2 1))
 
-        prevprice (get-price security)
+        ;prevprice (get-price security)
 
-        tr1 (if (nil? prevprice) (println (str "security=" security " price=" price " prevprice=" prevprice))) 
+        ;tr1 (if (nil? prevprice) (println (str "security=" security " price=" price " prevprice=" prevprice))) 
 
         ;tr1 (if (> (/ (abs (- (. Double parseDouble price) prevprice)) prevprice) 0.001) (update-price security price))
 

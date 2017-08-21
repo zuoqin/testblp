@@ -8,9 +8,10 @@ Download from http://example.com/FIXME.
 
 ## Usage
 
-FIXME: explanation
+PS E:\DEV\blpapi_java_3.8.8.2\bin>
 
-    $ java -jar testblp-0.1.0-standalone.jar [args]
+mvn install:install-file "-Dfile=blpapi-3.8.8-2.jar" "-DgroupId=com.bloombergblp" "-D
+artifactId=blpapi" "-Dversion=3.8.8.2" "-Dpackaging=jar" "-DgeneratePom=true"
 
 ## Options
 
