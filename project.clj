@@ -11,6 +11,7 @@
                  [com.bloomberglp/blpapi "3.8.8"]
                  [dk.ative/docjure "1.11.0"]
                  [clj-time "0.13.0"]
+                 [clj-http "2.3.0"]
                 ]
   :main ^:skip-aot testblp.core
   :target-path "target/%s"

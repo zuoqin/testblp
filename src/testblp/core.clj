@@ -8,6 +8,8 @@
     [clj-time.format :as f]
     [clj-time.local :as l]
     [clj-time.coerce :as c]
+
+    [clj-http.client :as client]
   )
   (use dk.ative.docjure.spreadsheet)
   (:gen-class))
@@ -81,6 +83,21 @@
     (d/transact-async conn  [{ :price/security secid :price/lastprice price :price/valuedate dt  :price/source "Bloomberg API import" :price/comment (str "Import from Bllomberg API output on " dttxt) :price/targetprice target :price/analystrating anr :price/yield yield :price/dvddate dvddate :price/putdate putdate :price/duration duration :db/id #db/id[:db.part/user -100001 ]}])
   )
 
+)
+
+(defn update-price-http [security price]
+  (let [
+
+
+    ]
+    (client/post "http://10.20.35.21:3000/api/price?isin=RU0007252813&price=79.78"
+      {:headers {"authorization" "Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJpc3MiOiJ6dW9xaW4iLCJleHAiOjE1MDMzOTI1MTcsImlhdCI6MTUwMzMwNjExN30."}
+       :content-type :json
+       :socket-timeout 1000  ;; in milliseconds
+       :conn-timeout 1000    ;; in milliseconds
+       }
+    )
+  )
 )
 
 (defn get-price [bcode]
