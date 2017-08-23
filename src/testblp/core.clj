@@ -10,6 +10,7 @@
     [clj-time.local :as l]
     [clj-time.coerce :as c]
 
+    [clojure.data.json :as json]
     [clj-http.client :as client]
   )
   (use dk.ative.docjure.spreadsheet)
@@ -32,9 +33,11 @@
 
 (def build-in-basicdate-formatter (f/formatters :basic-date))
 
-(def drive "e")
+(def drive "c")
 
-(def uri "datomic:dev://localhost:4334/sberpb_dev")
+(def app-state (atom {}) )
+
+;(def uri "datomic:dev://localhost:4334/sberpb_dev")
 
 ; (defn ent [id]
 ;   (let [
@@ -86,16 +89,43 @@
 
 ; )
 
+(defn map-sec [sec]
+  {:acode (get sec "acode") :bcode (get sec "bcode") :price (get sec "price") :currency (get sec "currency") :multiple (get sec "multiple") }
+)
+
+(defn get-securities []
+  (let [
+
+
+    ]
+    (client/get "http://10.20.35.21:3000/api/security"
+      {;:proxy-host "10.20.30.41"
+       ;:proxy-port 8080
+       :headers {
+         "Proxy-Authorization" (str "Basic bXNrXGF6b3JjaGVua292OkxldW1pMjA1")
+         "authorization" "Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJpc3MiOiJ6dW9xaW4iLCJleHAiOjE1MDMzOTI1MTcsImlhdCI6MTUwMzMwNjExN30."}
+       :content-type :json
+       ;:socket-timeout 1000  ;; in milliseconds
+       ;:conn-timeout 1000    ;; in milliseconds
+       }
+    )
+  )
+)
+
 (defn update-price-http [security price]
   (let [
 
 
     ]
-    (client/post "http://10.20.35.21:3000/api/price?isin=RU0007252813&price=79.78"
-      {:headers {"authorization" "Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJpc3MiOiJ6dW9xaW4iLCJleHAiOjE1MDMzOTI1MTcsImlhdCI6MTUwMzMwNjExN30."}
+    (client/get "http://10.20.35.21:3000/api/postran?client=AANDF&security=17592186045502"
+      {;:proxy-host "10.20.30.41"
+       ;:proxy-port 8080
+       :headers {
+         "Proxy-Authorization" (str "Basic bXNrXGF6b3JjaGVua292OkxldW1pMjA1")
+         "authorization" "Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJpc3MiOiJ6dW9xaW4iLCJleHAiOjE1MDMzOTI1MTcsImlhdCI6MTUwMzMwNjExN30."}
        :content-type :json
-       :socket-timeout 1000  ;; in milliseconds
-       :conn-timeout 1000    ;; in milliseconds
+       ;:socket-timeout 1000  ;; in milliseconds
+       ;:conn-timeout 1000    ;; in milliseconds
        }
     )
   )
@@ -185,7 +215,7 @@
 (defn parse-response [response]
   (let [
     data (str response)
-    ;tr1 (println (str response))
+    tr1 (println (str response))
     ]
 
     (loop [pos1 0 pos2 0 result {}]
@@ -201,23 +231,22 @@
         newpos1 (str/index-of data "PX_LAST = " (+ newpos2 10))
         newpos2 (str/index-of data "\n" (+ (if (nil? newpos1) pos1 newpos1) 1))
 
-        ;;tr1 (println (str "pos1=" newpos1 " pos2=" newpos2))
+        ;tr1 (println (str "pos1=" newpos1 " pos2=" newpos2))
 
         ;;pos2 1;;(+ pos1 10)
         price (subs data (+ newpos1 10) (- newpos2 1))
 
-        ;prevprice (get-price security)
+        prevprice (get-price security)
 
         ;tr1 (if (nil? prevprice) (println (str "security=" security " price=" price " prevprice=" prevprice))) 
 
         ;tr1 (if (> (/ (abs (- (. Double parseDouble price) prevprice)) prevprice) 0.001) (update-price security price))
 
         ]
-        (if (or (nil? (str/index-of data "security = \"" newpos1)))  result (recur newpos1 newpos2 {}))
+        (if (or (nil? (str/index-of data "security = \"" newpos1))) result (recur newpos1 newpos2 {}))
       )    
     )
   )
-
   (println "Success")
   ;(println (str "response=" (clojure.string/replace (str response) #"ReferenceDataResponse =" "")))  ;;(first (clojure.string/split (str response) #"^.*PX_LAST.*$"))
   ;; (loop [
@@ -324,9 +353,51 @@
 
 )
 
+(defn loadprices []
+  (let [
+    secs (map map-sec (json/read-str (:body (get-securities)) ))
+    tr1 (swap! app-state assoc-in [:secs] secs)
 
+
+    ;;allsecs (sort (comp sort-securities) (secs/get-securities))
+    secs (map (fn [x] (:isin x)) (drop 0 (->> (load-workbook (str (-> env :drive) ":/DEV/clojure/sberpb/sberapi/DB/quotes.xlsx") )
+                               (select-sheet "Data")
+                               (select-columns {:A :isin})))) 
+
+    securities (filter (fn [x] (some  #(= (:isin x) %) secs)) allsecs)
+
+    ]
+    (doseq [client clients]
+      (println (str "retrieving positions for portfolio: " (:code client)))
+      (getPositions "" (:code client))
+      (Thread/sleep 3000)
+    )
+
+    (doseq [client clients]
+      (println (str "retrieving deals for portfolio: " (:code client)))
+      (getDeals "" (:code client) 0)
+      (Thread/sleep 3000)
+    )
+
+    (doseq [sec securities]
+      (println (str "retrieving portfolios for security: " (:acode sec)))
+      (getPortfolios "" (:id sec))
+      (Thread/sleep 3000)
+    )
+
+    (doseq [sec securities]
+      (println (str "calculating portfolios limits for security: " (:acode sec)))
+      (calcPortfolios "" (:id sec) 10.0)
+      (Thread/sleep 3000)
+    )
+
+    (println "Finished caching data")
+    ;(first securities)
+  )
+)
 
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
-  (println "Hello, World!"))
+  (println "Hello, World!")
+)
